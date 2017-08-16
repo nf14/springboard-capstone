@@ -1,0 +1,69 @@
+
+## Capstone Ideas
+
+**Zillow**  
+1. What is the problem you want to solve? 
+When to put a house on the market is an interesting problem to solve because anyone who puts their house on the market obviously has the goal of selling it. 
+
+2. Who is your client and why do they care about this problem? In other words, what will your client DO or DECIDE based on your analysis that they wouldn't have otherwise? 
+Client wants to move and wants to have the best chance at selling their house fast. With this information the client will decide when is the optimal time to put their house up for sale.
+
+3. What data are you going to use for this? How will you acquire this data? 
+Zillow data using their API
+https://www.zillow.com/howto/api/APIOverview.htm
+
+R package - ZillowR
+https://cran.rstudio.com/web/packages/ZillowR/index.html
+
+4. In brief, outline your approach to solving this problem (knowing that this might change later). 
+Look at how long it took for the houses to sell. 
+Determine the shortest amount of time that each housing group (by price) sat on the market before close. 
+
+5. What are your deliverable
+Results on Github with recommendations and visuals. 
+
+Studies that are out there
+http://www.huffingtonpost.com/entry/best-time-to-sell-a-house_us_56f99740e4b0143a9b48f62a
+https://www.zillow.com/blog/best-time-to-list-home-170825/
+
+
+
+**Marketing Channels**   
+1. What is the problem you want to solve? 
+Which online marketing channels (or combination of channels) has the highest customer lifetime value. 
+
+2. Who is your client and why do they care about this problem? In other words, what will your client DO or DECIDE based on your analysis that they wouldn't have otherwise? 
+Client wants to optimize media spend and time investment in channels that will create the best long term value. 
+
+3. What data are you going to use for this? How will you acquire this data? 
+Internal data both online (Adobe and/or Google analytics) and potentially offline CRM data. 
+
+4. In brief, outline your approach to solving this problem (knowing that this might change later). 
+Find out which data sets I have access to. 
+Determine how to stitch the data together (online, offline and media spend).
+Start breaking down the channels with various attribution models and analyze which ones are the most profitable. 
+
+5. What are your deliverable
+Report published to github with R code as well as visuals. 
+
+
+**Breastfeeding**  
+1. What is the problem you want to solve? 
+Mothers often stop breastfeeding for various reasons other than simply making a choice to stop. Often women would prefer to continue but stop due to various challenges.  If we can determine the major pain point(s) that lead to weaning, we can come up with proactive solutions to help mom continue breastfeeding. 
+
+2. Who is your client and why do they care about this problem? In other words, what will your client DO or DECIDE based on your analysis that they wouldn't have otherwise? 
+This information would be useful for all professionals who are involved with mom's who have recently had a baby. With this data, the client could proactively identify when a mom is close to feeling like she has to wean (when she would prefer not to).   
+
+3. What data are you going to use for this? How will you acquire this data? 
+https://www.cdc.gov/breastfeeding/index.htm 
+https://www.cdc.gov/breastfeeding/data/reportcard.htm
+https://www.cdc.gov/breastfeeding/data/ifps/data.htm 
+
+
+4. In brief, outline your approach to solving this problem (knowing that this might change later). 
+First identify main challenges women face when breastfeeding. 
+Analyze various factors with support, number of children, type of delivery (c-section or vaginal), working outside the home, etc.
+Look to see if certain challenges are more or less likely to influence weaning. 
+
+5. What are your deliverable
+Report published to github with R code as well as visuals. 
