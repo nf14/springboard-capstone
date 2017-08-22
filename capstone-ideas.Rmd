@@ -1,31 +1,42 @@
 
 ## Capstone Ideas
 
-**Zillow**  
+**Realtor**  
 1. What is the problem you want to solve? 
-When to put a house on the market is an interesting problem to solve because anyone who puts their house on the market obviously has the goal of selling it. 
+A realtor wants to know which US city has the hottest market for selling a home. 
 
 2. Who is your client and why do they care about this problem? In other words, what will your client DO or DECIDE based on your analysis that they wouldn't have otherwise? 
-Client wants to move and wants to have the best chance at selling their house fast. With this information the client will decide when is the optimal time to put their house up for sale.
+Realtors. A realtor may move to an area if they know they’ll have a greater chance at success.  
 
 3. What data are you going to use for this? How will you acquire this data? 
-Zillow data using their API
-https://www.zillow.com/howto/api/APIOverview.htm
+Zillow Data (https://www.zillow.com/research/data/) broken down by city. Data sets:
+Sold For Loss (%)
+Sold For Gain (%)
+Increasing Values (%)
+Decreasing Values (%)
+Listings With Price Cut (%)
+Sold in the Past Year (%)
+For-Sale Inventory (Raw)
+Buyer-Seller Index
+Market Health Index
 
-R package - ZillowR
-https://cran.rstudio.com/web/packages/ZillowR/index.html
 
 4. In brief, outline your approach to solving this problem (knowing that this might change later). 
-Look at how long it took for the houses to sell. 
-Determine the shortest amount of time that each housing group (by price) sat on the market before close. 
+Determine the different definitions of success. 
+- How quickly the houses sell? 
+- Median home price?
+- Are the houses more likely to sell over/under asking price?  
+- What is the inventory of houses for sale?
+- What is the potential of the area (buyer-seller, market health)? 
+
+Combine the data sets. Clean up as the number of cities on the lists varies. Trend past 3 years. 
 
 5. What are your deliverable
-Results on Github with recommendations and visuals. 
+Code, along with a slide deck/visuals with insights and recommendations. 
 
-Studies that are out there
-http://www.huffingtonpost.com/entry/best-time-to-sell-a-house_us_56f99740e4b0143a9b48f62a
-https://www.zillow.com/blog/best-time-to-list-home-170825/
 
+
+--- ideas I'm not using ---
 
 
 **Marketing Channels**   
