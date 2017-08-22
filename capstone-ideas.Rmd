@@ -2,13 +2,13 @@
 ## Capstone Ideas
 
 **Realtor**  
-1. What is the problem you want to solve? 
+1. What is the problem you want to solve?   
 A realtor wants to know which US city has the hottest market for selling a home. 
 
-2. Who is your client and why do they care about this problem? In other words, what will your client DO or DECIDE based on your analysis that they wouldn't have otherwise? 
+2. Who is your client and why do they care about this problem? In other words, what will your client DO or DECIDE based on your analysis that they wouldn't have otherwise?   
 Realtors. A realtor may move to an area if they know they’ll have a greater chance at success.  
 
-3. What data are you going to use for this? How will you acquire this data? 
+3. What data are you going to use for this? How will you acquire this data?   
 Zillow Data (https://www.zillow.com/research/data/) broken down by city. Data sets:
 Sold For Loss (%)
 Sold For Gain (%)
@@ -21,7 +21,7 @@ Buyer-Seller Index
 Market Health Index
 
 
-4. In brief, outline your approach to solving this problem (knowing that this might change later). 
+4. In brief, outline your approach to solving this problem (knowing that this might change later).   
 Determine the different definitions of success. 
 - How quickly the houses sell? 
 - Median home price?
@@ -31,7 +31,7 @@ Determine the different definitions of success.
 
 Combine the data sets. Clean up as the number of cities on the lists varies. Trend past 3 years. 
 
-5. What are your deliverable
+5. What are your deliverable?  
 Code, along with a slide deck/visuals with insights and recommendations. 
 
 
