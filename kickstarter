@@ -3,11 +3,14 @@
 install.packages("dplyr")
 install.packages("tidyr")
 install.packages("anytime")
+install.packages("lubridate")
 
 library(dplyr)
 library(tidyr)
 library(anytime)
 library(readr)
+library(lubridate)
+
 
 #import csv file
 ks <- read_csv("~/Downloads/train.csv.zip")
@@ -22,10 +25,14 @@ ks_us$deadline <- anytime(ks_us$deadline)
 ks_us$created_at <- anytime(ks_us$created_at)
 ks_us$launched_at <- anytime(ks_us$launched_at)
 
+# extract dealine hour
+ks_us$deadline_hour <- hour(ks_us$deadline)
+
 #extract year, month and day
 ks_us$deadline <- as.Date(strptime(ks_us$deadline, "%Y-%m-%d"))
 ks_us$created_at <- as.Date(strptime(ks_us$created_at, "%Y-%m-%d"))
 ks_us$launched_at <- as.Date(strptime(ks_us$launched_at, "%Y-%m-%d"))
+
 
 #days between created and deadline
 ks_us$date_cd <- difftime(ks_us$deadline,ks_us$created_at, units = "days")
@@ -58,16 +65,12 @@ plot(ks_us[,c("final_status","backers_count")], main = "Box-plot of backers", ou
 
 
 # outliers
-plot(ks_us$goal) # 4 remove?
+plot(ks_us$goal) 
 
-plot(ks_us$backers_count) # 1 remove?
+plot(ks_us$backers_count) 
 
-plot(ks_us$date_cd) # none
+plot(ks_us$date_cd) 
 
-#karen questions
-# doing math - just to look at or always add new column
-# review code and how i did it
-# boxplot why change to as.factor?
-# outliers - should I remove them? 
+
 
 
