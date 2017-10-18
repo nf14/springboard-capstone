@@ -4,9 +4,10 @@
 
 ## Project Description 
 **Who is your client and why do they care about this problem? In other words, what will your client DO or DECIDE based on your analysis that they wouldn’t have otherwise?** 
-Those who want to start a Kickstarter campaign. Knowing the most influential factor in getting funded, the client will know what is needed for the greatest chance of success.   
-**What data are you going to use for this? How will you acquire this data?**
-Kaggle data  
+Those who want to start a Kickstarter campaign. Knowing the most influential factor in getting funded, the client will know what is needed for the greatest chance of success.  
+
+**What data are you going to use for this? How will you acquire this data?**  
+Kaggle data      
 
 **In brief, outline your approach to solving this problem.**  
 Begin cleaning up the data. Come up with potential theories. Analyze and explore the data. Discover what factor(s) will predict whether a campaign will get funded or not. 
