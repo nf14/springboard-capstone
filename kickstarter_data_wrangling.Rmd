@@ -16,7 +16,8 @@ library(readr)
 library(lubridate)  
 ```
 
-Import & View the data
+Import & View the data  
+[Kaggle data](https://www.kaggle.com/codename007/funding-successful-projects)
 ```{r}
 ks <- read_csv("~/Downloads/train.csv.zip")
 View(ks)
