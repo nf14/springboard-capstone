@@ -1,0 +1,146 @@
+---
+title: "Turning your Kickstarter idea into a reality"
+---
+
+## Intro: Why do some Kickstarter ideas get funded and others do not?   
+
+### Why Kickstarter?
+Kickstarer's mission is to help bring creative projects to life. Since launching in 2009, 14 million people have backed a project, $3.4 billion has been pledged, and 134,135 projects have been successfully funded. Projects have many forms including food and publishing to music, fashion and technology. 
+
+Kickstarter is all or nothing. If a project doesn't get every dollar, the project will not be succesful. We are going to dive into what makes a project succesful or not.      
+
+### Data  
+To predict whether a project will get funded or not, we will look at the (Kaggle data set). https://www.kaggle.com/codename007/funding-successful-projects 
+The data contains ... variables (do I need to explain them or just a few?). 
+
+## Working with the Data
+
+Libraries
+```{r}
+library(dplyr)
+library(tidyr)
+library(anytime)
+library(readr)
+library(lubridate)
+library(ggplot2)
+```
+
+Import and clean up the data
+Because the data is from a Kaggle competition, it is fairly clean. There are no missing variables.
+```{r}
+#import csv file
+ks <- read_csv("~/Downloads/train.csv")
+View(ks)
+
+# Get the data set ready  
+# 1. only include US $ currency 
+ks_us <- subset(ks, currency == "USD")
+
+#2. change date unix format:
+ks_us$deadline <- anytime(ks_us$deadline)
+ks_us$created_at <- anytime(ks_us$created_at)
+ks_us$launched_at <- anytime(ks_us$launched_at)
+
+# extract dealine hour
+ks_us$deadline_hour <- hour(ks_us$deadline)
+
+#extract year, month and day
+ks_us$deadline <- as.Date(strptime(ks_us$deadline, "%Y-%m-%d"))
+ks_us$created_at <- as.Date(strptime(ks_us$created_at, "%Y-%m-%d"))
+ks_us$launched_at <- as.Date(strptime(ks_us$launched_at, "%Y-%m-%d"))
+
+#days between created and deadline
+ks_us$date_cd <- difftime(ks_us$deadline,ks_us$created_at, units = "days")
+
+#add day of the week for deadline
+ks_us$deadlineday <- weekdays(as.Date(ks_us$deadline))
+
+
+```
+
+## Exploratory Analysis
+Now that we have our metrics determined, we will start digging into what the data has to tell us. We are working with 92,0333 projects from April 2009 - May 2015. 
+```{r}
+# explore funded data
+sum(ks_us$final_status)
+
+# total funded = 30573 (33.2%)
+ks_funded <- ks_us[ks_us$final_status=="1",]
+mean(ks_funded$goal) #9880.844
+
+plot(ks_funded$goal) 
+
+
+# explore unfunded
+ks_unfunded <- ks_us[ks_us$final_status=="0",]
+mean(ks_unfunded$goal) #43599.01
+
+plot(ks_unfunded$goal)
+
+#box-plots
+ks_us$final_status <- as.factor(ks_us$final_status)
+
+# plot goal both funded & unfunded
+boxplot(goal~final_status, data = ks_us, outline = FALSE)
+
+# plot backers count
+boxplot(backers_count~final_status, data = ks_us, outline = FALSE)
+
+
+# outliers
+plot(ks_us$goal) 
+
+plot(ks_us$backers_count) 
+
+plot(ks_us$date_cd) 
+``` 
+
+# DELETE - playing around with the variables
+Plots by variables
+```{r}
+# 1. Goal Amount
+# scatter plot with two colors with funded vs unfunded
+# plot funded vs unfunded goal on scatter plot
+ggplot() + geom_point(aes(x=ks_funded$goal, y=ks_unfunded$goal))
+
+# 2. Disable Communication
+# ??? not working ???
+overall how many disable communication??
+
+false = ks_us$disable_communication)
+plot(ks_us[,c("final_status","disable_communication")], main = "Box-plot of backers", outline = FALSE)
+
+# 3. Deadline
+# create distribution for both hour and day of the week
+# ??? day instead of a number? 
+qplot(ks_us$deadlineday, "days", geom = "histogram")
+plot(ks_us$deadline_hour, )
+
+hist(ks_us$deadlineday, "days", freq = TRUE)
+
+# 4. How many days between start and deadline
+boxplot(date_cd~final_status, data = ks_us, outline = FALSE)
+
+
+# 5. created
+
+```
+
+
+## Feature Engineering?
+
+
+
+## Probability? Stats? 
+logistic regression / cart & random forest
+
+
+## Findings 
+
+
+
+## Recommendations
+
+
+
+
