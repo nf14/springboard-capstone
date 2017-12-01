@@ -1,0 +1,139 @@
+---
+title: "Applying Statistics to Kickstarter Data"
+output: pdf_document
+---
+
+```{r include=TRUE}
+# libraries
+library(tidyr)
+library(anytime)
+library(readr)
+library(lubridate)
+library(ggplot2)
+
+# data
+#import csv file
+ks <- read_csv("~/Downloads/train.csv")
+
+# Get the data set ready  
+# 1. only include US $ currency 
+ks_us <- subset(ks, currency == "USD")
+
+#2. change date unix format:
+ks_us$deadline <- anytime(ks_us$deadline)
+ks_us$created_at <- anytime(ks_us$created_at)
+ks_us$launched_at <- anytime(ks_us$launched_at)
+ks_us$state_changed_at <-anytime(ks_us$state_changed_at)
+
+
+# extract dealine hour
+ks_us$deadline_hour <- hour(ks_us$deadline)
+
+#extract year, month and day
+ks_us$deadline <- as.Date(strptime(ks_us$deadline, "%Y-%m-%d"))
+ks_us$created_at <- as.Date(strptime(ks_us$created_at, "%Y-%m-%d"))
+ks_us$launched_at <- as.Date(strptime(ks_us$launched_at, "%Y-%m-%d"))
+ks_us$state_changed_at <- as.Date(strptime(ks_us$state_changed_at, "%Y-%m-%d"))
+
+
+#days between created and deadline
+ks_us$date_cd <- difftime(ks_us$deadline,ks_us$created_at, units = "days")
+ks_us$date_cd <- as.numeric(ks_us$date_cd)
+
+#add day of the week for deadline
+ks_us$deadlineday <- weekdays(as.Date(ks_us$deadline))
+
+# turn final status from numeric into a factor
+ks_us$final_status = as.factor(ks_us$final_status)
+
+# Change 0/1 to unfunded and funded
+ks_us$final_status <- factor(ks_us$final_status, levels=c(0,1), labels=c("unfunded", "funded"))
+
+
+```
+
+Apply Statistics to the Data
+```{r}
+# Can you count something interesting?
+# 1. How many projects get funded? #30573
+sum(ks_us$final_status == "funded")
+
+
+# Amount of days related to funding status
+days365 <- ks_us[ which(ks_us$date_cd < 365), ]
+ggplot(days365, aes(final_status, date_cd)) + geom_boxplot()
+
+
+# distribution of how many days the projects were active
+ggplot(ks_us, aes(date_cd)) + geom_histogram(binwidth = 5, aes(colour=final_status))
+ggplot(days365, aes(date_cd)) + geom_histogram(binwidth = 5, aes(colour=final_status))
+
+summary(ks_us$date_cd[ks_us$final_status=="funded"])
+summary(ks_us$date_cd[ks_us$final_status=="unfunded"])
+
+# goal amount ?? better visuals ??
+ggplot(ks_us, aes(goal)) + geom_area(stat = "bin", aes(colour=final_status))
+
+ggplot(ks_us, aes(goal)) + geom_histogram(binwidth = 100, aes(colour=final_status))
+
+
+
+# goal amount vs project length
+ggplot(ks_us, aes(date_cd, goal)) + geom_jitter(aes(colour = final_status))
+ggplot(days365, aes(date_cd, goal)) + geom_jitter(aes(colour = final_status))
+
+#goal amount vs backers
+ggplot(ks_us, aes(backers_count, goal)) + geom_jitter(aes(colour = final_status))
+
+goal1k <- ks_us[ which(ks_us$goal<1000), ]
+ggplot(goal1k, aes(backers_count, goal)) + geom_jitter(aes(colour = final_status))
+
+summary(ks_us$goal[ks_us$final_status=="funded"])
+summary(ks_us$goal[ks_us$final_status=="unfunded"])
+
+
+# goal to deadline hour
+ggplot(ks_us, aes(deadline_hour, goal)) + geom_bar(stat="identity", aes(colour = final_status))
+ggplot(goal1k, aes(deadline_hour, goal)) + geom_bar(stat="identity", aes(colour = final_status))
+
+
+# deadline hour distribution
+ggplot(ks_us, aes(deadline_hour)) + geom_histogram(binwidth = 1, aes(colour=final_status))
+
+summary(ks_us$deadline_hour[ks_us$final_status=="funded"])
+summary(ks_us$deadline_hour[ks_us$final_status=="unfunded"])
+
+
+# day of the week vs funding
+# how put in order of day? 
+deadlineday <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+
+ggplot(ks_us, aes(deadlineday, goal)) + geom_bar(stat = "identity", aes(colour = final_status)) + scale_x_discrete(limits = deadlineday)
+
+
+
+```  
+
+## Initial Observations of the Data
+Total Kickstarter projects is 10,8129. For this analysis we are only focusing on projects with US dollars used, which is 85% (92,033). Of these projects, 33% (30,573) get fully funded. 
+
+## Trends
+### Project Length
+There is a wide range of how many days a project is active. Both funded and unfunded have a range from a day or two to over four years. The median for both is close. Median for unfunded is 48 and median for funded is 49.  
+
+### Goal Amount
+Obvious observation is the more backers per goal, the higher chance the project had at succeeding. 
+The unfunded projects. The Median goal amount for funded projects is $3,500 and the mean is $9,881. 
+
+### Deadline Hour
+The deadline hours for both funded and funded follow the same trend. Earlier in the morning and later at night are more popular times versus 8pm - 12am being the the least likely for a project to end. 
+
+### Deadline Day
+Nothing surprising with the deadline day. Both funded/unfunded have more deadline days over Thursday to Saturday. Sunday to Wednesday is fairly steady with the lowest on Tuesday. 
+
+## Future Thoughts
+The length of time a project is active could lead to further insights. We'll look into this further to see if there is anything to pull from the shorter or longer active project lengths. 
+
+
+
+
