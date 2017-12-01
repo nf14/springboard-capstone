@@ -1,0 +1,60 @@
+Kickstarter Campaign - From an idea to fully funded reality
+December 2017
+
+1.Introduction - Why Kickstarter?
+Kickstarer's mission is to help bring creative projects to life. Since launching in 2009, 14 million people have backed a project, $3.4 billion has been pledged, and 134,135 projects have been successfully funded. Projects have many forms including food and publishing to music, fashion and technology. 
+
+Kickstarter is all or nothing. If a project doesn't get every dollar, the project will not be successful. Kickstarter released their data on Kaggle with a challenge,  to predict if a project will get successfully funded or not.
+
+2. Kickstarter Dataset 
+To predict whether a project will get funded or not, we will look at the (Kaggle data set). The data contains the product description, goal amount, various project timelines and whether a project gets funded or not. In total there are 108,129 project from May 2009 - May 2015. For our purposes, we will focus on projects that use US currency. 
+
+Variable Description
+project_id: unique id of project
+name: name of the project
+desc: description of project
+goal: the goal (amount) required for the project
+keywords: keywords which describe project
+disable communication: whether the project authors has disabled communication option with people donating to the project
+country: country of project author
+currency: currency in which goal (amount) is required
+deadline: till this date the goal must be achieved (in unix time format)
+state_changed_at: at this time the project status changed. Status could be successful, failed, suspended, cancelled etc. (in unix time format)
+created_at: at this time the project was posted on the website(in unix time format)
+launched_at: at this time the project went live on the website(in unix time format)
+backers_count: number of people who backed the project
+final_status: whether the project got successfully funded (target variable – 1,0)
+
+
+3. Data Wrangling & Exploring the Data
+First the data, train.csv, is downloaded from Kaggle and uploaded into RStudio. Next we will subset the data to only use projects with the US currency. This is still 85% of the projects. 
+
+We will be analyzing over 92k projects. Of the projects, 33% were funded. 
+
+[Idea to look into more]
+- since the start the goal amount per year … (show graph)
+- any major shifts in the data from 2009-2015?
+
+
+Next we/I took the time variables that were in unix and extracted the date and time. These variables included deadline, state_changed_at, created_at and launched_at. From these we created several new variables to get a better understanding of how long the projects lasted and whether the start or end time had an impact. 
+
+[mindset change: look into specific times to see if they had an impact]
+- day of the week that looks the best for launched and/or deadline
+- month that is best for launched and/or deadline?
+- hour? 
+
+Finally we turned the numeric final status with 0s and 1s to a factor with unfunded and funded. 
+
+[Limitations]  
+Interesting to know amount of each project's exposure on the website.
+
+
+Next steps
+4. Machine Learning (?) Method Analysis? 
+CART and Random Forest 
+-will use ROC curve to determine best model
+
+5. Results -> Recommendations
+
+Appendix
+R code
