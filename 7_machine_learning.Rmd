@@ -1,0 +1,207 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Kickstarter Variables
+
+
+## 1. Load Libraries
+```{r}
+library(dplyr)
+library(tidyr)
+library(anytime)
+library(readr)
+library(lubridate)
+library(ggplot2)
+```
+
+## 2. Import and clean up the data
+```{r}
+#import csv file
+ks <- read_csv("~/Downloads/train.csv")
+
+# Get the data set ready  
+# 1. only include US $ currency 
+ks_us <- subset(ks, currency == "USD")
+
+#2. change date unix format:
+ks_us$deadline <- anytime(ks_us$deadline, tz="America/Los_Angeles")
+ks_us$created_at <- anytime(ks_us$created_at, tz="America/Los_Angeles")
+ks_us$launched_at <- anytime(ks_us$launched_at, tz="America/Los_Angeles")
+ks_us$state_changed_at <-anytime(ks_us$state_changed_at, tz="America/Los_Angeles")
+
+#extract hour
+ks_us$deadline_hour <- hour(ks_us$deadline)
+ks_us$launch_hour <- hour(ks_us$launched_at)
+
+#extract year, month and day
+ks_us$deadline <- as.Date(strptime(ks_us$deadline, "%Y-%m-%d"))
+ks_us$created_at <- as.Date(strptime(ks_us$created_at, "%Y-%m-%d"))
+ks_us$launched_at <- as.Date(strptime(ks_us$launched_at, "%Y-%m-%d"))
+ks_us$state_changed_at <- as.Date(strptime(ks_us$state_changed_at, "%Y-%m-%d"))
+
+# extract times from dealine 
+ks_us$deadline_day <- weekdays(as.Date(ks_us$deadline))
+ks_us$deadline_month <- month(ks_us$deadline)
+ks_us$deadline_year <- year(ks_us$deadline)
+
+# extract times from launched
+ks_us$launch_day <- weekdays(as.Date(ks_us$launched_at))
+ks_us$launch_month <- month(ks_us$launched_at)
+ks_us$launch_year <- year(ks_us$launched_at)
+
+# Days b/w activity 
+# days between created and deadline
+ks_us$date_cd <- difftime(ks_us$deadline,ks_us$created_at, units = "days")
+ks_us$date_cd <- as.numeric(ks_us$date_cd)
+
+# days between launched and deadline
+ks_us$date_ld <- difftime(ks_us$deadline,ks_us$launched_at, units = "days")
+ks_us$date_ld <- as.numeric(ks_us$date_ld)
+
+# turn final status from numeric into a factor
+ks_us$final_status = as.factor(ks_us$final_status)
+
+# Change 0/1 to unfunded and funded
+ks_us$final_status <- factor(ks_us$final_status, levels=c(0,1), labels=c("unfunded", "funded"))
+
+# Add number of backers / goal to get an idea of what the average is for backers to goal amount 
+ks_us$b_g <- (ks_us$goal/ks_us$backers_count)
+
+
+# group deadline hour
+ks_us <- mutate(ks_us, hr_d_grouped = ifelse(deadline_hour %in% 5:10, "morning",
+                                ifelse(deadline_hour %in% 11:16, "afternoon",
+                                       ifelse(deadline_hour %in% 17:22, "night",
+                                               "latenight"))))
+
+# group launch hour
+ks_us <- mutate(ks_us, hr_l_grouped = ifelse(launch_hour %in% 5:10, "morning",
+                                ifelse(launch_hour %in% 11:16, "afternoon",
+                                       ifelse(launch_hour %in% 17:22, "night",
+                                               "latenight"))))
+
+
+```
+
+
+
+## Create Train & Test 
+```{r}
+# get row number and calculate 75%
+# 92033 rows: 75% = 69025
+N <- nrow(ks_us)
+target <- round(N * 0.75)
+
+# create vector N uniform random variables: gf
+gf <- runif(N) 
+
+# create train and test
+ks_train <-  ks_us[gf < 0.75, ]
+ks_test <- ks_us[gf >= 0.75, ]
+
+nrow(ks_train)
+nrow(ks_test)
+```
+
+CART 
+```{r}
+library(caTools)
+library(rpart)
+library(rpart.plot)
+library(ROCR)
+
+## set seed 
+set.seed(415)
+
+# CART - grow tree
+fundedtree_model = rpart(final_status ~ goal + date_ld + deadline_hour + deadline_day + deadline_month + launch_hour + launch_day + launch_month + desc_word + kw_word + desc_I + desc_We + desc_help, data=ks_train, method = "class", control = rpart.control(cp = 0.001))
+
+# display the results 
+printcp(fundedtree_model) 
+# visualize cross-validation results
+plotcp(fundedtree_model) 
+# detailed summary of splits
+summary(fundedtree_model) 
+
+#####
+printcp(fundedtree_model) 
+num <- which.min(fundedtree_model$cptable[,"xerror"])
+fundedtree_model$cptable[num,]
+
+cp.choice <-fundedtree_model$cptable[num,"CP"]
+pruned.tree <- prune(fundedtree_model, cp=cp.choice)
+
+prp(pruned.tree)
+
+# plot tree 
+prp(fundedtree_model)
+
+prediction_tree <- predict(pruned.tree, ks_test, type = "class")
+
+cm_tree <- as.matrix(table(Actual=ks_test$final_status, Predicted=prediction_tree))
+cm_tree
+
+(15188+388)/23001 # 0.6771879
+
+
+```
+
+
+Random Forest
+```{r}
+library(randomForest)
+library(dplyr)
+library(caTools)
+
+##outcome needs to be a factor
+ks_train$final_status = as.factor(ks_train$final_status)
+ks_test$final_status = as.factor(ks_test$final_status)
+
+ks_us %>% 
+  group_by(final_status) %>% 
+  summarise(number=n())
+
+# Attempts with Random Forest
+classifier <- randomForest(final_status ~ goal + date_ld + deadline_hour + deadline_month + launch_hour + launch_month + date_ld + desc_word + desc_I, data=ks_train, nodesize = 25, ntree = 200) 
+
+# which variables are most important
+varImpPlot(classifier) 
+# goal, date_ld, desc_word, launch hour and deadlin hour
+
+### DELETE?
+# confusion matrix on train data
+classifier$confusion
+# accuracy 67%
+(4174 + 42368) / 69032 # 0.6742091
+
+# Prediction on test 
+test_predict <- predict(classifier, newdata = ks_test)
+
+# confusion matrix
+cm <- as.matrix(table(Actual=ks_test$final_status,Predicted = test_predict))
+cm
+(14276+1298)/23001 # 0.677101
+
+```
+
+
+
+Logistic Regression
+```{r}
+# logistic regression model (used splits from CART)
+model3 <- glm(final_status ~ goal + date_ld + deadline_hour + launch_hour + desc_I, data = ks_train, family = binomial)
+
+summary(model1) # AIC: 85372
+
+# Apply model to test
+predict_test <- predict(model3, newdata = ks_test, type = "response")
+predict_test <- ifelse(predict_test > 0.5,1,0)
+
+cm <- as.matrix(table(Actual=ks_test$final_status,Predicted = predict_test))
+cm
+(15178+375)/23001 #0.676188
+
+```
