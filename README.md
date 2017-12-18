@@ -10,11 +10,6 @@ We are going to look into what factors are most influential in getting a project
 ## Data
 The data comes from a Kaggle competition. There are two data sets, train.csv and test.csv. The train data consists of sample projects from the May 2009 to May 2015. The test data consists of projects from June 2015 to March 2017.   
 
-The data is fairly clean and organized, needing little clean up. 
-
-## Approach
-
-...
+The data is fairly clean and oranized, needing little clean up. 
 
 
-## Final Results
