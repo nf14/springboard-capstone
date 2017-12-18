@@ -1,0 +1,364 @@
+---
+Predicting Kickstarter Project Success
+---
+
+# Kickstarter Variables
+
+
+## 1. Load Libraries
+```{r}
+library(dplyr)
+library(tidyr)
+library(anytime)
+library(readr)
+library(lubridate)
+library(ggplot2)
+```
+
+## 2. Import and clean up the data
+```{r}
+#import csv file
+ks <- read_csv("~/Downloads/train.csv")
+
+# Get the data set ready  
+# 1. only include US $ currency 
+ks_us <- subset(ks, currency == "USD")
+
+#2. change date unix format:
+ks_us$deadline <- anytime(ks_us$deadline, tz="America/Los_Angeles")
+ks_us$created_at <- anytime(ks_us$created_at, tz="America/Los_Angeles")
+ks_us$launched_at <- anytime(ks_us$launched_at, tz="America/Los_Angeles")
+ks_us$state_changed_at <-anytime(ks_us$state_changed_at, tz="America/Los_Angeles")
+
+#extract hour
+ks_us$deadline_hour <- hour(ks_us$deadline)
+ks_us$launch_hour <- hour(ks_us$launched_at)
+
+#extract year, month and day
+ks_us$deadline <- as.Date(strptime(ks_us$deadline, "%Y-%m-%d"))
+ks_us$created_at <- as.Date(strptime(ks_us$created_at, "%Y-%m-%d"))
+ks_us$launched_at <- as.Date(strptime(ks_us$launched_at, "%Y-%m-%d"))
+ks_us$state_changed_at <- as.Date(strptime(ks_us$state_changed_at, "%Y-%m-%d"))
+
+# extract times from dealine 
+ks_us$deadline_day <- weekdays(as.Date(ks_us$deadline))
+ks_us$deadline_month <- month(ks_us$deadline)
+ks_us$deadline_year <- year(ks_us$deadline)
+
+# extract times from launched
+ks_us$launch_day <- weekdays(as.Date(ks_us$launched_at))
+ks_us$launch_month <- month(ks_us$launched_at)
+ks_us$launch_year <- year(ks_us$launched_at)
+
+# Days b/w activity 
+# days between created and deadline
+ks_us$date_cd <- difftime(ks_us$deadline,ks_us$created_at, units = "days")
+ks_us$date_cd <- as.numeric(ks_us$date_cd)
+
+# days between launched and deadline
+ks_us$date_ld <- difftime(ks_us$deadline,ks_us$launched_at, units = "days")
+ks_us$date_ld <- as.numeric(ks_us$date_ld)
+
+# turn final status from numeric into a factor
+ks_us$final_status = as.factor(ks_us$final_status)
+
+# Change 0/1 to unfunded and funded
+ks_us$final_status <- factor(ks_us$final_status, levels=c(0,1), labels=c("unfunded", "funded"))
+
+# Add number of backers / goal to get an idea of what the average is for backers to goal amount 
+ks_us$b_g <- (ks_us$goal/ks_us$backers_count)
+
+
+# group deadline hour
+ks_us <- mutate(ks_us, hr_d_grouped = ifelse(deadline_hour %in% 5:10, "morning",
+                                ifelse(deadline_hour %in% 11:16, "afternoon",
+                                       ifelse(deadline_hour %in% 17:22, "night",
+                                               "latenight"))))
+
+# group launch hour
+ks_us <- mutate(ks_us, hr_l_grouped = ifelse(launch_hour %in% 5:10, "morning",
+                                ifelse(launch_hour %in% 11:16, "afternoon",
+                                       ifelse(launch_hour %in% 17:22, "night",
+                                               "latenight"))))
+
+
+```
+
+## 3. Explore Variables
+Total projects(US) = 92,033    
+Funded 30,573 (33.2%)    
+Unfunded 55,000  
+
+```{r}
+# 1. goal
+# Unfunded projects had a wider range and asked for more funding than the funded projects. 
+boxplot(goal~final_status, data = ks_us, outline = FALSE)
+
+# funded
+summary(ks_us$goal[ks_us$final_status == "funded"])
+# median = 3,500
+# interquartile range = 7,800
+
+# unfunded
+summary(ks_us$goal[ks_us$final_status == "unfunded"])
+# median = 5,500
+# interquartile range = 12,500
+
+# goal t-test
+t.test(ks_us$goal~ks_us$final_status) # p-value < 2.2e-16
+
+# 2. disabled communication
+# 91,800 - 99% didn't disable communication, so not important
+sum(ks_us$disable_communication == "false") 
+
+# 3. Backers count
+# Not surprising, funded projects had a significant amount more of funded projects and a wide range. Unfunded never got over 100 backers, while funded had up to 400. 
+boxplot(backers_count~final_status, data = ks_us, outline = FALSE)
+
+t.test(ks_us$backers_count~ks_us$final_status) # p-value < 2.2e-16
+
+summary(ks_us$backers_count[ks_us$final_status == "funded"]) #median 76
+summary(ks_us$backers_count[ks_us$final_status == "unfunded"]) #median 6
+
+
+# backers count to goal amount
+# unable to know average amount by backer for unfunded because we don't know how close the project was to getting funded. 
+boxplot(b_g~final_status, data = ks_us, outline = FALSE)
+
+# delete? only concerned with funded???
+summary(ks_us$b_g[ks_us$final_status == "unfunded"])
+# Just an idea of how many backers there were according to the goal 
+
+summary(ks_us$b_g[ks_us$final_status == "funded"])
+# Median amount given by backer is $42
+
+```
+
+
+
+
+Time Related Variables 
+```{r}
+## Deadline
+# Deadline hour
+# Same pattern whether funded or unfunded. The most popular deadline hours are 3am and 4am. There is a strong dip from 7am to 2pm. The dip is during the day and picks back up in the evening through the late night. 
+ggplot(ks_us, aes(deadline_hour)) + geom_bar(aes(fill=final_status))
+
+# deadline hour grouped
+ggplot(ks_us, aes(hr_d_grouped)) + geom_bar(aes(fill=final_status))
+
+# Deadline Day
+# Tuesday has the least amount of project deadlines. Thursday - Saturday have the highest amount of project deadlines. 
+ggplot(ks_us, aes(deadline_day)) + geom_bar(aes(fill=final_status))
+
+# Deadline Month
+# (Need to put in actual months, not just a number)
+# January and February are the least popular months to have a project deadlines. March - May are the peak month with the most project deadlines. 
+ggplot(ks_us, aes(deadline_month)) + geom_bar(aes(fill=final_status))
+
+
+# chi-squared test of homogeneity for launch & deadline hour
+chisq.test(ks_us$hr_d_grouped,ks_us$final_status) # p-value < 2.2e-16
+
+
+
+```
+
+Launch Times
+```{r}
+## Launch
+# Launch Hour
+# Unfunded and funded have a similar pattern. Between the hours of 6am and 12pm are the lowest for project launch hours. Launch hour climbs up from 1pm to 4pm and stays somewhat steady until 1am. 
+ggplot(ks_us, aes(launch_hour)) + geom_bar(aes(fill=final_status))
+
+# Chi Squared Test
+chisq.test(ks_us$hr_l_grouped,ks_us$final_status) # p-value < 2.2e-16
+
+
+# launch hour grouped
+ggplot(ks_us, aes(hr_l_grouped)) + geom_bar(aes(fill=final_status))
+
+# Launch Day
+# Sunday the least likely day to launch a project. Saturday is the next least likely day. Tuesday is the most popular day to launch a project. Monday, Wednesday, Thursday and Friday are all fairly even. 
+ggplot(ks_us, aes(launch_day)) + geom_bar(aes(fill=final_status))
+
+# Launch Month
+# Different pattern from deadline month. Months with most launched projects are March and April. December is the least likely month to launch a project. The other months are fairly steady. 
+ggplot(ks_us, aes(launch_month)) + geom_bar(aes(fill=final_status))
+
+
+# launch to deadline 
+# 30 days is the most popular length of time for both funded and unfunded. 
+ggplot(ks_us, aes(date_ld)) + geom_bar(aes(fill=final_status)) 
+
+
+
+```
+
+Explore Words
+```{r}
+
+# Description
+# Get word count for description
+ks_us$desc_word <- sapply(ks_us$desc, function(x) length(unlist(strsplit(as.character(x), "\\W+"))))
+
+# Description word count has a wider range for unfunded. 
+boxplot(desc_word~final_status, data = ks_us, outline = FALSE)
+
+t.test(ks_us$desc_word~ks_us$final_status) # p-value =  0.8601
+
+ks_us$kw_word <- sapply(ks_us$keywords, function(x) length(unlist(strsplit(as.character(x), "\\W+"))))
+boxplot(kw_word~final_status, data = ks_us, outline = FALSE)
+
+t.test(ks_us$kw_word~ks_us$final_status) # p-value =  < 2.2e-16
+
+# if description contains "I"
+ks_us$desc_I = grepl("I", ks_us$desc)
+ggplot(ks_us, aes(desc_I)) + geom_bar(aes(fill=final_status))
+# those who got more funding did not use "I" 
+ 
+# if description contains "We"
+ks_us$desc_We = grepl("We", ks_us$desc)
+ggplot(ks_us, aes(desc_We)) + geom_bar(aes(fill=final_status))
+
+
+# if description contains "help"
+ks_us$desc_help = grepl("help", ks_us$desc)
+ggplot(ks_us, aes(desc_help)) + geom_bar(aes(fill=final_status))
+
+
+chisq.test(ks_us$desc_I,ks_us$final_status) # p-value < 2.2e-16
+chisq.test(ks_us$desc_We,ks_us$final_status) # p-value = 0.1713
+chisq.test(ks_us$desc_help,ks_us$final_status) # p-value = 1.042e-07
+
+summary(ks_us$desc_I)
+summary(ks_us$desc_I[ks_us$final_status=="funded"])
+6386/21846 # 0.292
+summary(ks_us$desc_I[ks_us$final_status=="unfunded"])
+15460/70187 # 0.220
+
+
+# Using "I" and probability
+summary(ks_us$desc_I[ks_us$final_status=="funded"])
+6386/21846 # 0.292
+summary(ks_us$desc_I[ks_us$final_status=="unfunded"])
+15460/70187 # 0.220
+```
+
+## Create Train & Test 
+```{r}
+# get row number and calculate 75%
+# 92033 rows: 75% = 69025
+N <- nrow(ks_us)
+target <- round(N * 0.75)
+
+# create vector N uniform random variables: gf
+gf <- runif(N) 
+
+# create train and test
+ks_train <-  ks_us[gf < 0.75, ]
+ks_test <- ks_us[gf >= 0.75, ]
+
+nrow(ks_train)
+nrow(ks_test)
+```
+
+CART 
+```{r}
+library(caTools)
+library(rpart)
+library(rpart.plot)
+library(ROCR)
+
+## set seed 
+set.seed(415)
+
+# CART - grow tree
+fundedtree_model = rpart(final_status ~ goal + date_ld + deadline_hour + deadline_day + deadline_month + launch_hour + launch_day + launch_month + desc_word + kw_word + desc_I + desc_We + desc_help, data=ks_train, method = "class", control = rpart.control(cp = 0.001))
+
+# display the results 
+printcp(fundedtree_model) 
+# visualize cross-validation results
+plotcp(fundedtree_model) 
+# detailed summary of splits
+summary(fundedtree_model) 
+
+#####
+printcp(fundedtree_model) 
+num <- which.min(fundedtree_model$cptable[,"xerror"])
+fundedtree_model$cptable[num,]
+
+cp.choice <-fundedtree_model$cptable[num,"CP"]
+pruned.tree <- prune(fundedtree_model, cp=cp.choice)
+
+prp(pruned.tree)
+
+# plot tree 
+prp(fundedtree_model)
+
+prediction_tree <- predict(pruned.tree, ks_test, type = "class")
+
+cm_tree <- as.matrix(table(Actual=ks_test$final_status, Predicted=prediction_tree))
+cm_tree
+
+(15188+388)/23001 # 0.6771879
+
+
+```
+
+
+Random Forest
+```{r}
+library(randomForest)
+library(dplyr)
+library(caTools)
+
+##outcome needs to be a factor
+ks_train$final_status = as.factor(ks_train$final_status)
+ks_test$final_status = as.factor(ks_test$final_status)
+
+ks_us %>% 
+  group_by(final_status) %>% 
+  summarise(number=n())
+
+# Attempts with Random Forest
+classifier <- randomForest(final_status ~ goal + date_ld + deadline_hour + deadline_month + launch_hour + launch_month + date_ld + desc_word + desc_I, data=ks_train, nodesize = 25, ntree = 200) 
+
+# which variables are most important
+varImpPlot(classifier) 
+# goal, date_ld, desc_word, launch hour and deadlin hour
+
+### DELETE?
+# confusion matrix on train data
+classifier$confusion
+# accuracy 67%
+(4174 + 42368) / 69032 # 0.6742091
+
+# Prediction on test 
+test_predict <- predict(classifier, newdata = ks_test)
+
+# confusion matrix
+cm <- as.matrix(table(Actual=ks_test$final_status,Predicted = test_predict))
+cm
+(14276+1298)/23001 # 0.677101
+
+```
+
+
+
+Logistic Regression
+```{r}
+# logistic regression model (used splits from CART)
+model3 <- glm(final_status ~ goal + date_ld + deadline_hour + launch_hour + desc_I, data = ks_train, family = binomial)
+
+summary(model1) # AIC: 85372
+
+# Apply model to test
+predict_test <- predict(model3, newdata = ks_test, type = "response")
+predict_test <- ifelse(predict_test > 0.5,1,0)
+
+cm <- as.matrix(table(Actual=ks_test$final_status,Predicted = predict_test))
+cm
+(15178+375)/23001 #0.676188
+
+```
