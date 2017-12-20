@@ -111,9 +111,25 @@ t.test(ks_us$goal~ks_us$final_status) # p-value < 2.2e-16
 # 91,800 - 99% didn't disable communication, so not important
 sum(ks_us$disable_communication == "false") 
 
+# chi-squared test
+chisq.test(ks_us$disable_communication,ks_us$final_status) # p-value < 2.2e-16
+
+
 # 3. Backers count
 # Not surprising, funded projects had a significant amount more of funded projects and a wide range. Unfunded never got over 100 backers, while funded had up to 400. 
 boxplot(backers_count~final_status, data = ks_us, outline = FALSE)
+
+# scatterplot funded vs unfunded
+# funded: a slight positive to the right line but mainly grouped 
+plot(ks_us$goal[ks_us$final_status == "funded"], ks_us$backers_count[ks_us$final_status == "funded"], 
+     xlab = "goal",
+     ylab = "backers count")
+
+# unfunded: large grouping towards minimal backers
+plot(ks_us$goal[ks_us$final_status == "unfunded"], ks_us$backers_count[ks_us$final_status == "unfunded"])
+
+# histogram of funded for backers
+hist(ks_us$backers_count[ks_us$final_status == "funded"])
 
 t.test(ks_us$backers_count~ks_us$final_status) # p-value < 2.2e-16
 
@@ -125,7 +141,6 @@ summary(ks_us$backers_count[ks_us$final_status == "unfunded"]) #median 6
 # unable to know average amount by backer for unfunded because we don't know how close the project was to getting funded. 
 boxplot(b_g~final_status, data = ks_us, outline = FALSE)
 
-# delete? only concerned with funded???
 summary(ks_us$b_g[ks_us$final_status == "unfunded"])
 # Just an idea of how many backers there were according to the goal 
 
@@ -138,31 +153,6 @@ summary(ks_us$b_g[ks_us$final_status == "funded"])
 
 
 Time Related Variables 
-```{r}
-## Deadline
-# Deadline hour
-# Same pattern whether funded or unfunded. The most popular deadline hours are 3am and 4am. There is a strong dip from 7am to 2pm. The dip is during the day and picks back up in the evening through the late night. 
-ggplot(ks_us, aes(deadline_hour)) + geom_bar(aes(fill=final_status))
-
-# deadline hour grouped
-ggplot(ks_us, aes(hr_d_grouped)) + geom_bar(aes(fill=final_status))
-
-# Deadline Day
-# Tuesday has the least amount of project deadlines. Thursday - Saturday have the highest amount of project deadlines. 
-ggplot(ks_us, aes(deadline_day)) + geom_bar(aes(fill=final_status))
-
-# Deadline Month
-# (Need to put in actual months, not just a number)
-# January and February are the least popular months to have a project deadlines. March - May are the peak month with the most project deadlines. 
-ggplot(ks_us, aes(deadline_month)) + geom_bar(aes(fill=final_status))
-
-
-# chi-squared test of homogeneity for launch & deadline hour
-chisq.test(ks_us$hr_d_grouped,ks_us$final_status) # p-value < 2.2e-16
-
-
-
-```
 
 Launch Times
 ```{r}
@@ -191,6 +181,32 @@ ggplot(ks_us, aes(launch_month)) + geom_bar(aes(fill=final_status))
 # 30 days is the most popular length of time for both funded and unfunded. 
 ggplot(ks_us, aes(date_ld)) + geom_bar(aes(fill=final_status)) 
 
+t.test(ks_us$date_ld~ks_us$final_status) # p-value < 2.2e-16
+
+
+```
+
+```{r}
+## Deadline
+# Deadline hour
+# Same pattern whether funded or unfunded. The most popular deadline hours are 3am and 4am. There is a strong dip from 7am to 2pm. The dip is during the day and picks back up in the evening through the late night. 
+ggplot(ks_us, aes(deadline_hour)) + geom_bar(aes(fill=final_status))
+
+# deadline hour grouped
+ggplot(ks_us, aes(hr_d_grouped)) + geom_bar(aes(fill=final_status))
+
+# Deadline Day
+# Tuesday has the least amount of project deadlines. Thursday - Saturday have the highest amount of project deadlines. 
+ggplot(ks_us, aes(deadline_day)) + geom_bar(aes(fill=final_status))
+
+# Deadline Month
+# (Need to put in actual months, not just a number)
+# January and February are the least popular months to have a project deadlines. March - May are the peak month with the most project deadlines. 
+ggplot(ks_us, aes(deadline_month)) + geom_bar(aes(fill=final_status))
+
+
+# chi-squared test of homogeneity for launch & deadline hour
+chisq.test(ks_us$hr_d_grouped,ks_us$final_status) # p-value < 2.2e-16
 
 
 ```
@@ -247,6 +263,9 @@ summary(ks_us$desc_I[ks_us$final_status=="unfunded"])
 
 ## Create Train & Test 
 ```{r}
+## set seed 
+set.seed(415)
+
 # get row number and calculate 75%
 # 92033 rows: 75% = 69025
 N <- nrow(ks_us)
@@ -269,9 +288,14 @@ library(caTools)
 library(rpart)
 library(rpart.plot)
 library(ROCR)
+library(caret)
 
-## set seed 
-set.seed(415)
+# need packages to enhance tree plots, cant get "rattle" to download 
+install.packages("RGtk2")
+install.packages("rattle")
+library(rattle)	
+library(rpart.plot)
+library(RColorBrewer)	
 
 # CART - grow tree
 fundedtree_model = rpart(final_status ~ goal + date_ld + deadline_hour + deadline_day + deadline_month + launch_hour + launch_day + launch_month + desc_word + kw_word + desc_I + desc_We + desc_help, data=ks_train, method = "class", control = rpart.control(cp = 0.001))
@@ -291,18 +315,31 @@ fundedtree_model$cptable[num,]
 cp.choice <-fundedtree_model$cptable[num,"CP"]
 pruned.tree <- prune(fundedtree_model, cp=cp.choice)
 
+# plot tree 
 prp(pruned.tree)
 
-# plot tree 
-prp(fundedtree_model)
+fancyRpartPlot(pruned.tree)
+# if can't get visual to work, can use output: 
+pruned.tree
+
+# confusion matrix for train data - tried as matrix and function - Error "all arguments must have the same length"
+cm_train <- as.matrix(table(Actual=ks_train$final_status, Predicted=pruned.tree))
+cm_train
+
+confusionMatrix(data = pruned.tree, ks_train$final_status)
 
 prediction_tree <- predict(pruned.tree, ks_test, type = "class")
 
 cm_tree <- as.matrix(table(Actual=ks_test$final_status, Predicted=prediction_tree))
 cm_tree
 
-(15188+388)/23001 # 0.6771879
+(15188+388)/23001 # 0.6771879 / 68%
 
+# sensitivity
+622 / (7121+622) # 0.0803
+
+# specificity
+14991 / (14991+491) # 0.9682
 
 ```
 
@@ -321,14 +358,13 @@ ks_us %>%
   group_by(final_status) %>% 
   summarise(number=n())
 
-# Attempts with Random Forest
+# Random Forest model
 classifier <- randomForest(final_status ~ goal + date_ld + deadline_hour + deadline_month + launch_hour + launch_month + date_ld + desc_word + desc_I, data=ks_train, nodesize = 25, ntree = 200) 
 
 # which variables are most important
 varImpPlot(classifier) 
 # goal, date_ld, desc_word, launch hour and deadlin hour
 
-### DELETE?
 # confusion matrix on train data
 classifier$confusion
 # accuracy 67%
@@ -342,16 +378,41 @@ cm <- as.matrix(table(Actual=ks_test$final_status,Predicted = test_predict))
 cm
 (14276+1298)/23001 # 0.677101
 
+
+# Random Forest with all varaibles 
+classifier2 <- randomForest(final_status ~ goal + launch_hour + launch_month + deadline_hour + deadline_month + date_ld + desc_word + kw_word + desc_I + desc_We + desc_help, data=ks_train, nodesize = 25, ntree = 200)
+
+training_predict2 <- predict(classifier2, newdata = ks_train)
+
+# accuracy with confusion matrix
+training_confusion2 <- table(training_predict2, ks_train$final_status)
+training_confusion2
+
+sum(diag(training_confusion2))/sum(training_confusion2) #0.7677165 / 77%
+
+# try with test 
+test_predict2 <- predict(classifier2, newdata = ks_test)
+
+# accuracy with confusion matrix
+test_confusion2 <- table(test_predict2, ks_test$final_status)
+test_confusion2
+
+sum(diag(test_confusion2))/sum(test_confusion2) #0.68163 / 68%
+
 ```
 
 
 
 Logistic Regression
-```{r}
+```{r error=TRUE}
 # logistic regression model (used splits from CART)
-model3 <- glm(final_status ~ goal + date_ld + deadline_hour + launch_hour + desc_I, data = ks_train, family = binomial)
+model <- glm(final_status ~ goal + date_ld + deadline_hour + launch_hour + desc_I, data = ks_train, family = binomial)
 
-summary(model1) # AIC: 85372
+summary(model) # AIC: 84959
+
+# Train Model Accuracy 
+cm <- as.matrix(table(Actual=ks_train$final_status, Predicted = model))
+cm
 
 # Apply model to test
 predict_test <- predict(model3, newdata = ks_test, type = "response")
