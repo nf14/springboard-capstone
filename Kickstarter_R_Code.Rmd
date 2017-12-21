@@ -128,8 +128,8 @@ plot(ks_us$goal[ks_us$final_status == "funded"], ks_us$backers_count[ks_us$final
 # unfunded: large grouping towards minimal backers
 plot(ks_us$goal[ks_us$final_status == "unfunded"], ks_us$backers_count[ks_us$final_status == "unfunded"])
 
-# histogram of funded for backers
-hist(ks_us$backers_count[ks_us$final_status == "funded"])
+# histogram of funded for backers - can't get it to work
+hist(ks_us$backers_count[ks_us$final_status == "funded" | ks_us$backers_count<10000]) #less than 10k
 
 t.test(ks_us$backers_count~ks_us$final_status) # p-value < 2.2e-16
 
@@ -289,13 +289,8 @@ library(rpart)
 library(rpart.plot)
 library(ROCR)
 library(caret)
+library(party)
 
-# need packages to enhance tree plots, cant get "rattle" to download 
-install.packages("RGtk2")
-install.packages("rattle")
-library(rattle)	
-library(rpart.plot)
-library(RColorBrewer)	
 
 # CART - grow tree
 fundedtree_model = rpart(final_status ~ goal + date_ld + deadline_hour + deadline_day + deadline_month + launch_hour + launch_day + launch_month + desc_word + kw_word + desc_I + desc_We + desc_help, data=ks_train, method = "class", control = rpart.control(cp = 0.001))
@@ -318,20 +313,24 @@ pruned.tree <- prune(fundedtree_model, cp=cp.choice)
 # plot tree 
 prp(pruned.tree)
 
-fancyRpartPlot(pruned.tree)
-# if can't get visual to work, can use output: 
+rpart.plot(pruned.tree)
+
+# get tree splits 
 pruned.tree
+attributes(pruned.tree)
 
-# confusion matrix for train data - tried as matrix and function - Error "all arguments must have the same length"
-cm_train <- as.matrix(table(Actual=ks_train$final_status, Predicted=pruned.tree))
-cm_train
+# confusion matrix for train data 
+# predict on train data
+prediction_tree_train <- predict(pruned.tree, ks_train, type = "class")
 
-confusionMatrix(data = pruned.tree, ks_train$final_status)
+confusionMatrix(data = prediction_tree_train, ks_train$final_status) # 0.6733 / 67% 
 
-prediction_tree <- predict(pruned.tree, ks_test, type = "class")
 
+# confusion matrix on test data
 cm_tree <- as.matrix(table(Actual=ks_test$final_status, Predicted=prediction_tree))
 cm_tree
+
+confusionMatrix(data=pruned.tree, ks_test, type = "class")
 
 (15188+388)/23001 # 0.6771879 / 68%
 
@@ -358,46 +357,31 @@ ks_us %>%
   group_by(final_status) %>% 
   summarise(number=n())
 
-# Random Forest model
-classifier <- randomForest(final_status ~ goal + date_ld + deadline_hour + deadline_month + launch_hour + launch_month + date_ld + desc_word + desc_I, data=ks_train, nodesize = 25, ntree = 200) 
-
-# which variables are most important
-varImpPlot(classifier) 
-# goal, date_ld, desc_word, launch hour and deadlin hour
-
-# confusion matrix on train data
-classifier$confusion
-# accuracy 67%
-(4174 + 42368) / 69032 # 0.6742091
-
-# Prediction on test 
-test_predict <- predict(classifier, newdata = ks_test)
-
-# confusion matrix
-cm <- as.matrix(table(Actual=ks_test$final_status,Predicted = test_predict))
-cm
-(14276+1298)/23001 # 0.677101
-
-
 # Random Forest with all varaibles 
-classifier2 <- randomForest(final_status ~ goal + launch_hour + launch_month + deadline_hour + deadline_month + date_ld + desc_word + kw_word + desc_I + desc_We + desc_help, data=ks_train, nodesize = 25, ntree = 200)
+classifier <- randomForest(final_status ~ goal + launch_hour + launch_month + deadline_hour + deadline_month + date_ld + desc_word + kw_word + desc_I + desc_We + desc_help, data=ks_train, nodesize = 25, ntree = 200)
 
-training_predict2 <- predict(classifier2, newdata = ks_train)
+training_predict <- predict(classifier, newdata = ks_train)
 
 # accuracy with confusion matrix
-training_confusion2 <- table(training_predict2, ks_train$final_status)
-training_confusion2
+training_confusion <- table(training_predict, ks_train$final_status)
+training_confusion
 
-sum(diag(training_confusion2))/sum(training_confusion2) #0.7677165 / 77%
+sum(diag(training_confusion))/sum(training_confusion) #0.7677165 / 77%
 
 # try with test 
-test_predict2 <- predict(classifier2, newdata = ks_test)
+test_predict <- predict(classifier, newdata = ks_test)
 
 # accuracy with confusion matrix
-test_confusion2 <- table(test_predict2, ks_test$final_status)
-test_confusion2
+test_confusion <- table(test_predict, ks_test$final_status)
+test_confusion
 
 sum(diag(test_confusion2))/sum(test_confusion2) #0.68163 / 68%
+
+# sensitivity
+1246 / (1246+1044) # 0.5441048
+
+# specificity
+14364 / (14364+6291) # 0.6954248
 
 ```
 
@@ -410,16 +394,28 @@ model <- glm(final_status ~ goal + date_ld + deadline_hour + launch_hour + desc_
 
 summary(model) # AIC: 84959
 
+# Train confusion
+predict_train_lr <- predict(model, type = "response")
+predict_train_lr <- ifelse(predict_train_lr > 0.5,1,0)
+
 # Train Model Accuracy 
-cm <- as.matrix(table(Actual=ks_train$final_status, Predicted = model))
+cm <- as.matrix(table(Actual=ks_train$final_status, Predicted = predict_train_lr))
 cm
+(45227+1043)/69088 #0.6697256 / 67.0%
+
 
 # Apply model to test
-predict_test <- predict(model3, newdata = ks_test, type = "response")
+predict_test <- predict(model, newdata = ks_test, type = "response")
 predict_test <- ifelse(predict_test > 0.5,1,0)
 
 cm <- as.matrix(table(Actual=ks_test$final_status,Predicted = predict_test))
 cm
-(15178+375)/23001 #0.676188
+(15178+323)/22945 #0.675572 / 67.6%
+
+# sensitivity
+323 / (323+7214) # 0.04285525
+
+# specificity
+15151 / (15151+257) # 0.9833204
 
 ```
