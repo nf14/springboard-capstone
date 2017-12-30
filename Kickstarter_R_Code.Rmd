@@ -111,6 +111,10 @@ t.test(ks_us$goal~ks_us$final_status) # p-value < 2.2e-16
 # 91,800 - 99% didn't disable communication, so not important
 sum(ks_us$disable_communication == "false") 
 
+# data frame for disabled communication
+# 0 funded projects with disabled communication false
+ks_dc <- subset(ks_us, disable_communication == "true")
+
 # chi-squared test
 chisq.test(ks_us$disable_communication,ks_us$final_status) # p-value < 2.2e-16
 
@@ -183,6 +187,10 @@ ggplot(ks_us, aes(date_ld)) + geom_bar(aes(fill=final_status))
 
 t.test(ks_us$date_ld~ks_us$final_status) # p-value < 2.2e-16
 
+summary(ks_us$date_ld[ks_us$final_status == "funded"]) #mean 32.49  
+
+summary(ks_us$date_ld[ks_us$final_status == "unfunded"])#mean 35.25 
+
 
 ```
 
@@ -228,6 +236,10 @@ boxplot(kw_word~final_status, data = ks_us, outline = FALSE)
 
 t.test(ks_us$kw_word~ks_us$final_status) # p-value =  < 2.2e-16
 
+summary(ks_us$kw_word[ks_us$final_status == "funded"]) #median 6 & mean 5.75
+summary(ks_us$kw_word[ks_us$final_status == "unfunded"])#median 5 & mean 5.37
+
+
 # if description contains "I"
 ks_us$desc_I = grepl("I", ks_us$desc)
 ggplot(ks_us, aes(desc_I)) + geom_bar(aes(fill=final_status))
@@ -247,18 +259,29 @@ chisq.test(ks_us$desc_I,ks_us$final_status) # p-value < 2.2e-16
 chisq.test(ks_us$desc_We,ks_us$final_status) # p-value = 0.1713
 chisq.test(ks_us$desc_help,ks_us$final_status) # p-value = 1.042e-07
 
-summary(ks_us$desc_I)
-summary(ks_us$desc_I[ks_us$final_status=="funded"])
-6386/21846 # 0.292
-summary(ks_us$desc_I[ks_us$final_status=="unfunded"])
-15460/70187 # 0.220
-
-
 # Using "I" and probability
+summary(ks_us$desc_I) #I used 0.237 
 summary(ks_us$desc_I[ks_us$final_status=="funded"])
 6386/21846 # 0.292
 summary(ks_us$desc_I[ks_us$final_status=="unfunded"])
-15460/70187 # 0.220
+15460/21846 # 0.708
+
+
+# Using "We" and probability
+summary(ks_us$desc_We) # 0.088
+summary(ks_us$desc_We[ks_us$final_status=="funded"])
+2747/8101 # 0.339
+summary(ks_us$desc_We[ks_us$final_status=="unfunded"])
+5354/8101 # 0.661
+
+
+# Using "help" and probability
+summary(ks_us$desc_help) # 0.0772
+summary(ks_us$desc_help[ks_us$final_status=="funded"])
+2565/7109 # 0.361
+summary(ks_us$desc_help[ks_us$final_status=="unfunded"])
+4544/7109 # 0.639
+
 ```
 
 ## Create Train & Test 
@@ -325,12 +348,16 @@ prediction_tree_train <- predict(pruned.tree, ks_train, type = "class")
 
 confusionMatrix(data = prediction_tree_train, ks_train$final_status) # 0.6733 / 67% 
 
+# sensitivity
+2221 / (1753+2221) # 0.5588
+
+# specificity
+44299 / (44299+20815) # 0.6803299
 
 # confusion matrix on test data
-cm_tree <- as.matrix(table(Actual=ks_test$final_status, Predicted=prediction_tree))
-cm_tree
+prediction_tree_test <- predict(pruned.tree, ks_test, type = "class")
 
-confusionMatrix(data=pruned.tree, ks_test, type = "class")
+confusionMatrix(data = prediction_tree_test, ks_test$final_status) # 0.6778 / 68% 
 
 (15188+388)/23001 # 0.6771879 / 68%
 
@@ -368,6 +395,13 @@ training_confusion
 
 sum(diag(training_confusion))/sum(training_confusion) #0.7677165 / 77%
 
+# sensitivity
+7936 / (939+7936) # 0.8941972
+
+# specificity
+45113 / (45113+15100) #0.7492236
+
+
 # try with test 
 test_predict <- predict(classifier, newdata = ks_test)
 
@@ -375,7 +409,7 @@ test_predict <- predict(classifier, newdata = ks_test)
 test_confusion <- table(test_predict, ks_test$final_status)
 test_confusion
 
-sum(diag(test_confusion2))/sum(test_confusion2) #0.68163 / 68%
+sum(diag(test_confusion))/sum(test_confusion) #0.68163 / 68%
 
 # sensitivity
 1246 / (1246+1044) # 0.5441048
@@ -403,6 +437,11 @@ cm <- as.matrix(table(Actual=ks_train$final_status, Predicted = predict_train_lr
 cm
 (45227+1043)/69088 #0.6697256 / 67.0%
 
+# sensitivity
+1043 / (21993+1043) # 0.04527696
+
+# specificity
+45227 / (45227+825) # 0.9820855
 
 # Apply model to test
 predict_test <- predict(model, newdata = ks_test, type = "response")
